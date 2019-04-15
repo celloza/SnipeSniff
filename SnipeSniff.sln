@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared Code", "Shared Code", "{D2061D20-D37A-474D-B4CD-1620F374AC00}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnipeSniff.Service", "Marksman.Service\SnipeSniff.Service.csproj", "{F459D03D-C5C4-4942-A437-AA9E99635311}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnipeSharp", "Shared Code\SnipeSharp\SnipeSharp\SnipeSharp.csproj", "{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Debug|x64.ActiveCfg = Debug|x64
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Debug|x64.Build.0 = Debug|x64
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Release|x64.ActiveCfg = Release|x64
+		{F459D03D-C5C4-4942-A437-AA9E99635311}.Release|x64.Build.0 = Release|x64
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Debug|x64.Build.0 = Debug|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Release|x64.ActiveCfg = Release|Any CPU
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}.Release|x64.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2} = {D2061D20-D37A-474D-B4CD-1620F374AC00}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D05F479D-4C4F-4AE5-9E2A-B384BAA229E0}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <appSettings>
+    <!-- Define the Snipe-IT API address -->
+    <add key="Snipe:ApiAddress" value="SNIPEAPIADDRESS"/>
+    <!-- Define the Snipe-IT API token -->
+    <add key="Snipe:ApiToken" value="SNIPEAPITOKEN"/>
+    <!-- Define the interval at which updates are done to Snipe-IT -->
+    <add key="SnipeSniff:ServiceInterval" value="-1"/>
+    <!-- Define whether the service is running in server or client mode -->
+    <add key="SnipeSniff:ScannerEnabled" value="False"/>
+    <!-- Define the subnets (pipe delimited) that will be scanned should service be running in server mode -->
+    <add key="SnipeSniff:ScannerSubnet" value="SUBNET|SUBNET|SUBNET"/>
+  </appSettings>
+  <startup>
+    <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.6.1"/>
+  </startup>
+</configuration>

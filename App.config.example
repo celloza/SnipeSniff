@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <startup>
+    <supportedRuntime version="v4.0" sku=".NETFramework,Version=v4.6.1" />
+  </startup>
+  <system.diagnostics>
+    <trace autoflush="true" indentsize="4">
+      <listeners>
+        <add name="consoleListener" type="System.Diagnostics.ConsoleTraceListener" />
+        <remove name="Default" />
+      </listeners>
+    </trace>
+  </system.diagnostics>
+  <appSettings>
+    <add key="API" value="YOUR_API_KEY_HERE" />
+    <add key="BaseURI" value="https://YOUR_INSTANCE_URL_HERE/api/v1" />
+    <add key="DefaultStatusLabel" value="In Production" />
+    <add key="Company" value="YOUR_COMPANY_HERE" />
+    <add key="Location" value="YOUR_LOCATION_HERE" />
+    <add key="OUEnabled" value="false" />
+    <add key="OULevel" value="1" />
+    <add key="Interactive" value="false" />
+    <add key="WarrantyMonths" value="60" />
+    <add key="AssetTagPrefix" value="001" />
+  </appSettings>
+</configuration>
