@@ -1,2 +1,2 @@
-# SnipeProbe
+# SnipeSniff
 Network sniffer that creates and updates assets in Snipe-IT
