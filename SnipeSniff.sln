@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.28803.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared Code", "Shared Code", "{D2061D20-D37A-474D-B4CD-1620F374AC00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnipeSniff.Service", "Marksman.Service\SnipeSniff.Service.csproj", "{F459D03D-C5C4-4942-A437-AA9E99635311}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnipeSniff.Service", "SnipeSniff.Service\SnipeSniff.Service.csproj", "{F459D03D-C5C4-4942-A437-AA9E99635311}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnipeSharp", "Shared Code\SnipeSharp\SnipeSharp\SnipeSharp.csproj", "{3DAC380D-028B-478D-B5A3-F1E3C7DCB1A2}"
 EndProject

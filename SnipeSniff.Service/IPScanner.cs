@@ -79,7 +79,7 @@ namespace SnipeSniff.Service
                     var host = Dns.GetHostEntry(address);
                     result.HostName = host.HostName;
                 }
-                catch (Exception ex)
+                catch
                 { // Continue. 
                 }
             }
