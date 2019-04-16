@@ -15,14 +15,7 @@
  */
 
 using SnipeSniff.Service;
-using SnipeSniff.Service.Descriptors;
-using SnipeSharp;
 using System;
-using System.Configuration;
-using System.Globalization;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Timers;
 using Quartz;
 using System.Collections.Specialized;
 using Quartz.Impl;
@@ -35,24 +28,33 @@ namespace SnipeSniff
     /// system. 
     /// </summary>
     public class SnipeSniffService : IDisposable
-    {       
+    {
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="SnipeSniffService"/> class.
         /// </summary>
-        public SnipeSniffService(int intervalInSeconds, bool isServerMode, string snipeApiAddress, string snipeApiToken, string subnetString)
+        public SnipeSniffService(int intervalInSeconds, bool isServerMode, string snipeApiAddress, 
+            string snipeApiToken, string subnetString)
         {
-            //TODO: Do parameter checking here
+            if (intervalInSeconds < 1)
+                throw new ArgumentException("Invalid intervalInSeconds specified.");
             this.intervalInSeconds = intervalInSeconds;
-            this.isServerMode = isServerMode;
+
+            if (string.IsNullOrEmpty(snipeApiAddress))
+                throw new ArgumentException("Invalid SnipeApiAddress specified.");
             this.snipeApiAddress = snipeApiAddress;
+
+            if (string.IsNullOrEmpty(snipeApiToken))
+                throw new ArgumentException("Invalid SnipeApiToken specified.");
             this.snipeApiToken = snipeApiToken;
+
+            this.isServerMode = isServerMode;            
             this.subnetString = subnetString;
 
             Log.Information($"Configuration parameter IntervalInSeconds set to {intervalInSeconds}");
             Log.Information($"Configuration parameter ServerMode set to {isServerMode}");
             Log.Information($"Configuration parameter SnipeApiAddress set to {snipeApiAddress}");
-            Log.Information($"Configuration parameter SnipeApiToken set to <redacted>");
+            Log.Information($"Configuration parameter SnipeApiToken set to <not displayed>");
             Log.Information($"Configuration parameter SubnetsToScan set to {subnetString}");
 
             NameValueCollection props = new NameValueCollection
@@ -65,6 +67,50 @@ namespace SnipeSniff
             StdSchedulerFactory factory = new StdSchedulerFactory(props);
             scheduler = factory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
 
+        }
+       
+        /// <summary>
+        /// Starts the current service.
+        /// </summary>
+        internal void Start()
+        {
+            scheduler.Start().ConfigureAwait(false).GetAwaiter().GetResult();
+
+            ScheduleJobs();
+        }
+        
+        /// <summary>
+        /// Stops the current service.
+        /// </summary>
+        internal void Stop()
+        {
+            scheduler.Shutdown().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Schedules the jobs for execution.
+        /// </summary>
+        public void ScheduleJobs()
+        {
+            // Create the job
+            IJobDetail job = JobBuilder.Create<SnipeSniffJob>()
+                .UsingJobData("ServerMode", isServerMode)
+                .UsingJobData("SnipeApiAddress", snipeApiAddress)
+                .UsingJobData("SnipeApiToken", snipeApiToken)
+                .UsingJobData("SubnetString", subnetString)
+                .WithIdentity("SniffJob", "MainGroup")
+                .Build();
+
+            // Create the trigger using intervalInSeconds
+            ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity("MainTrigger", "MainGroup")
+                .WithSimpleSchedule(x => x
+                    .WithIntervalInSeconds(intervalInSeconds)
+                    .RepeatForever())
+                .Build();
+
+            // Tell quartz to schedule the job with the trigger
+            scheduler.ScheduleJob(job, trigger).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
         #region IDisposable Implementation
@@ -93,52 +139,8 @@ namespace SnipeSniff
 
         #endregion
 
-       
-        /// <summary>
-        /// Starts the current service.
-        /// </summary>
-        internal void Start()
-        {
-            scheduler.Start().ConfigureAwait(false).GetAwaiter().GetResult();
-
-            ScheduleJobs();
-        }
-
-
-        /// <summary>
-        /// Stops the current service.
-        /// </summary>
-        internal void Stop()
-        {
-            scheduler.Shutdown().ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-
-        public void ScheduleJobs()
-        {
-            // Create the job
-            IJobDetail job = JobBuilder.Create<SnipeSniffJob>()
-                .UsingJobData("ServerMode", isServerMode)
-                .UsingJobData("SnipeApiAddress", snipeApiAddress)
-                .UsingJobData("SnipeApiToken", snipeApiToken)
-                .UsingJobData("SubnetString", subnetString)
-                .WithIdentity("SniffJob", "MainGroup")
-                .Build();
-
-            // Create the trigger using intervalInSeconds
-            ITrigger trigger = TriggerBuilder.Create()
-                .WithIdentity("MainTrigger", "MainGroup")
-                .WithSimpleSchedule(x => x
-                    .WithIntervalInSeconds(intervalInSeconds)
-                    .RepeatForever())
-                .Build();
-
-            // Tell quartz to schedule the job with the trigger
-            scheduler.ScheduleJob(job, trigger).ConfigureAwait(false).GetAwaiter().GetResult();
-        }
-        
-
         #region Instance Fields
-        
+
         /// <summary>
         /// Indicates if the current <see cref="SnipeSniffService"/> is disposed.
         /// </summary>

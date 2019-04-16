@@ -3,7 +3,6 @@ using Serilog;
 using SnipeSharp;
 using SnipeSniff.Service.Descriptors;
 using System;
-using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,10 +11,8 @@ namespace SnipeSniff.Service
     public class SnipeSniffJob : IJob
     {
         /// <summary>
-        /// Run the job
+        /// Run the job.
         /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
         public Task Execute(IJobExecutionContext context)
         {
             serverMode = context.JobDetail.JobDataMap.GetBoolean("ServerMode");
@@ -23,7 +20,11 @@ namespace SnipeSniff.Service
             snipeApiToken = context.JobDetail.JobDataMap.GetString("SnipeApiToken");
             subnetString = context.JobDetail.JobDataMap.GetString("SubnetString");
 
-            //TODO: Do parameter checking here
+            if (string.IsNullOrEmpty(snipeApiUrl))
+                throw new ArgumentException("Invalid SnipeApiAddress specified.");
+
+            if (string.IsNullOrEmpty(snipeApiToken))
+                throw new ArgumentException("Invalid SnipeApiToken specified.");
 
             try
             {
@@ -112,31 +113,31 @@ namespace SnipeSniff.Service
                     Log.Error(ex.ToString());
                 }
             }
-        }
-
-        
+        }        
 
         #region Instance Fields
 
         /// <summary>
-        /// 
+        /// Defines whether the job is running in server mode (i.e. doing a scan on the supplied 
+        /// subnets) or in agent mode (i.e. only reporting the machine its running on).
         /// </summary>
         private bool serverMode;
 
         /// <summary>
-        /// 
+        /// Defines the URL to the Snipe-IT API.
         /// </summary>
         private string snipeApiUrl;
 
         /// <summary>
-        /// 
+        /// Defines the access token for the Snipe-IT API.
         /// </summary>
         private string snipeApiToken;
 
         /// <summary>
-        /// 
+        /// Defines the subnets to be scanned should the job be running in server mode.
         /// </summary>
         private string subnetString;
+
         #endregion
     }
 }

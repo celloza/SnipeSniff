@@ -1,6 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <appSettings>
+    <!-- Define whether logs are written to disk -->
+    <add key="SnipeSniff:LogToFile" value="True"/>
+    <!-- Log file location. If not specified, the default location will be used -->
+    <add key="SnipeSniff:LogFileLocation" value="True"/>
     <!-- Define the Snipe-IT API address -->
     <add key="Snipe:ApiAddress" value="SNIPEAPIADDRESS"/>
     <!-- Define the Snipe-IT API token -->
