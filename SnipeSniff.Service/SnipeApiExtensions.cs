@@ -1,5 +1,5 @@
 ﻿/*
- * Copyright 2019 marksman Contributors (https://github.com/Scope-IT/marksman)
+ * Copyright 2019 SnipeSniff Contributors (https://github.com/grimstoner/SnipeSniff)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
