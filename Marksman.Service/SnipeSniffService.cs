@@ -23,6 +23,10 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
+using Quartz;
+using System.Collections.Specialized;
+using Quartz.Impl;
+using Serilog;
 
 namespace SnipeSniff
 {
@@ -31,13 +35,35 @@ namespace SnipeSniff
     /// system. 
     /// </summary>
     public class SnipeSniffService : IDisposable
-    {        
+    {       
+
         /// <summary>
         /// 
         /// </summary>
-        public SnipeSniffService()
+        public SnipeSniffService(int intervalInSeconds, bool isServerMode, string snipeApiAddress, string snipeApiToken, string subnetString)
         {
-            // Init the scheduler here
+            //TODO: Do parameter checking here
+            this.intervalInSeconds = intervalInSeconds;
+            this.isServerMode = isServerMode;
+            this.snipeApiAddress = snipeApiAddress;
+            this.snipeApiToken = snipeApiToken;
+            this.subnetString = subnetString;
+
+            Log.Information($"Configuration parameter IntervalInSeconds set to {intervalInSeconds}");
+            Log.Information($"Configuration parameter ServerMode set to {isServerMode}");
+            Log.Information($"Configuration parameter SnipeApiAddress set to {snipeApiAddress}");
+            Log.Information($"Configuration parameter SnipeApiToken set to <redacted>");
+            Log.Information($"Configuration parameter SubnetsToScan set to {subnetString}");
+
+            NameValueCollection props = new NameValueCollection
+            {
+                { "quartz.serializer.type", "binary" },
+                { "quartz.scheduler.instanceName", "SnifferSchedule" },
+                { "quartz.jobStore.type", "Quartz.Simpl.RAMJobStore, Quartz" },
+                { "quartz.threadPool.threadCount", "1" }
+            };
+            StdSchedulerFactory factory = new StdSchedulerFactory(props);
+            scheduler = factory.GetScheduler().ConfigureAwait(false).GetAwaiter().GetResult();
 
         }
 
@@ -57,13 +83,8 @@ namespace SnipeSniff
             {
                 if (disposing)
                 {
-                    if (this.timer != null)
-                    {
-                        this.timer.Stop();
-                        this.timer.Elapsed -= this.OnTimerElapsed;
-                        this.timer.Dispose();
-                        this.timer = null;
-                    }
+                    if (!scheduler.IsShutdown)
+                        Stop();
                 }
 
                 this.isDisposed = true;
@@ -72,164 +93,86 @@ namespace SnipeSniff
 
         #endregion
 
-        /// <summary>
-        /// Asynchronously starts the current service.
-        /// </summary>
-        /// <returns>
-        ///     True if the service was started successfully.
-        /// </returns>
-        public bool StartAsync()
-        {
-            Task.Run(() =>
-            {
-                this.Start();
-            });
-            return true;
-        }
-
+       
         /// <summary>
         /// Starts the current service.
         /// </summary>
-        private void Start()
+        internal void Start()
         {
-            var intervalString = ConfigurationManager.AppSettings["SnipeSniff:ServiceInterval"];
+            scheduler.Start().ConfigureAwait(false).GetAwaiter().GetResult();
 
-            if (intervalString is null)
-                throw new ConfigurationErrorsException("The ServiceInterval setting is not defined.");
-
-            var interval =
-                TimeSpan.Parse(
-                    intervalString,
-                    CultureInfo.InvariantCulture).TotalMilliseconds;
-            
-            this.timer = 
-                new Timer()
-                {
-                    Interval = interval > 0 ? interval : TimeSpan.FromHours(24).TotalMilliseconds,
-                    AutoReset = false
-                };
-            this.timer.Elapsed += this.OnTimerElapsed;
-            this.OnTimerElapsed(this, null);
+            ScheduleJobs();
         }
 
-        /// <summary>
-        /// Synchronizes the local systems details with the configured <c>Snipe.It</c> 
-        /// system.
-        /// </summary>
-        private void SyncLocalDetails()
-        {
-            this.SyncHostNameDetails("localhost");           
-        }
-
-        /// <summary>
-        /// Scans the local network and synchronizes the located systems details with the 
-        /// configured <c>Snipe.It</c> system.
-        /// </summary>
-        private void SyncScannerDetails()
-        {
-            var scannerSubnets = 
-                ConfigurationManager
-                    .AppSettings["Marksman:ScannerSubnet"]
-                    .Split("|".ToArray(), StringSplitOptions.RemoveEmptyEntries);
-
-            var devices = 
-                    IPScanner
-                    .Scan(scannerSubnets)
-                    .Where(i => i.Status == System.Net.NetworkInformation.IPStatus.Success)
-                    .ToList();
-
-            foreach (var item in devices)
-            {
-                this.SyncHostNameDetails(item.HostName);
-            }
-        }
-
-        /// <summary>
-        /// Synchronizes the specified system's details with the configured <c>Snipe.It</c> 
-        /// system.
-        /// </summary>
-        private void SyncHostNameDetails(string hostName)
-        {
-            // Single Device.
-            SnipeItApi snipe =
-                SnipeApiExtensions.CreateClient(
-                    ConfigurationManager.AppSettings["Snipe:ApiAddress"],
-                    ConfigurationManager.AppSettings["Snipe:ApiToken"]);
-
-            if (!String.IsNullOrWhiteSpace(hostName))
-            {
-                Console.WriteLine($"Retrieving asset details for {hostName}");
-                try
-                {
-                    var asset = AssetDescriptor.Create(hostName);
-                    var components = ComponentDescriptor.Create(hostName);
-                    try
-                    {
-                        Console.WriteLine($"Synchronizing asset details for {hostName}");
-                        // The current version of the SnipeSharp API has mapping issues causing the response not de serializing.
-                        snipe.SyncAssetWithCompoments(asset, components);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to sync asset details for {hostName}");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to retrieve asset details for {hostName}");
-                }
-            }
-        }
 
         /// <summary>
         /// Stops the current service.
         /// </summary>
-        public void Stop()
+        internal void Stop()
         {
-            this.timer.Stop();
+            scheduler.Shutdown().ConfigureAwait(false).GetAwaiter().GetResult();
         }
-       
-        /// <summary>
-        /// Called when the current service timer has elapsed.
-        /// </summary>     
-        private void OnTimerElapsed(object sender, ElapsedEventArgs e)
+
+        public void ScheduleJobs()
         {
-            Console.WriteLine($"Service interval timer elapsed.");
-            this.timer.Stop();
-            try
-            {
-                // Start the scheduler here
-                if (Convert.ToBoolean(ConfigurationManager.AppSettings["SnipeSniff:ScannerEnabled"]))
-                {
-                    this.SyncScannerDetails();
-                }
-                else
-                {
-                    this.SyncLocalDetails();
-                }
-            }
-            catch
-            {
-                // Continue.
-            }
-            finally
-            {
-                Console.WriteLine($"Service interval timer started.");
-                this.timer.Start();
-            }
+            // Create the job
+            IJobDetail job = JobBuilder.Create<SnipeSniffJob>()
+                .UsingJobData("ServerMode", isServerMode)
+                .UsingJobData("SnipeApiAddress", snipeApiAddress)
+                .UsingJobData("SnipeApiToken", snipeApiToken)
+                .UsingJobData("SubnetString", subnetString)
+                .WithIdentity("SniffJob", "MainGroup")
+                .Build();
+
+            // Create the trigger using intervalInSeconds
+            ITrigger trigger = TriggerBuilder.Create()
+                .WithIdentity("MainTrigger", "MainGroup")
+                .WithSimpleSchedule(x => x
+                    .WithIntervalInSeconds(intervalInSeconds)
+                    .RepeatForever())
+                .Build();
+
+            // Tell quartz to schedule the job with the trigger
+            scheduler.ScheduleJob(job, trigger).ConfigureAwait(false).GetAwaiter().GetResult();
         }
+        
 
         #region Instance Fields
-
-        /// <summary>
-        /// The <see cref="Timer"/> instance for the current <see cref="SnipeSniffService"/>.
-        /// </summary>
-        private Timer timer;
-
+        
         /// <summary>
         /// Indicates if the current <see cref="SnipeSniffService"/> is disposed.
         /// </summary>
         private bool isDisposed;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private int intervalInSeconds;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private readonly IScheduler scheduler;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private bool isServerMode;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string snipeApiAddress;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string snipeApiToken;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string subnetString;
 
         #endregion
     }

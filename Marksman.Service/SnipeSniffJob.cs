@@ -1,0 +1,142 @@
+﻿using Quartz;
+using Serilog;
+using SnipeSharp;
+using SnipeSniff.Service.Descriptors;
+using System;
+using System.Configuration;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace SnipeSniff.Service
+{
+    public class SnipeSniffJob : IJob
+    {
+        /// <summary>
+        /// Run the job
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public Task Execute(IJobExecutionContext context)
+        {
+            serverMode = context.JobDetail.JobDataMap.GetBoolean("ServerMode");
+            snipeApiUrl = context.JobDetail.JobDataMap.GetString("SnipeApiAddress");
+            snipeApiToken = context.JobDetail.JobDataMap.GetString("SnipeApiToken");
+            subnetString = context.JobDetail.JobDataMap.GetString("SubnetString");
+
+            //TODO: Do parameter checking here
+
+            try
+            {
+                if (serverMode)
+                {
+                    this.SyncScannerDetails();
+                }
+                else
+                {
+                    this.SyncLocalDetails();
+                }
+            }
+            catch
+            {
+                // Continue
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Synchronizes the local systems details with the configured <c>Snipe.It</c> 
+        /// system.
+        /// </summary>
+        private void SyncLocalDetails()
+        {
+            this.SyncHostNameDetails("localhost");
+        }
+
+        /// <summary>
+        /// Scans the local network and synchronizes the located systems details with the 
+        /// configured <c>Snipe.It</c> system.
+        /// </summary>
+        private void SyncScannerDetails()
+        {
+            var subnetsToScan =
+                subnetString
+                    .Split("|".ToArray(), StringSplitOptions.RemoveEmptyEntries);
+
+            var devices =
+                    IPScanner
+                    .Scan(subnetsToScan)
+                    .Where(i => i.Status == System.Net.NetworkInformation.IPStatus.Success)
+                    .ToList();
+
+            foreach (var item in devices)
+            {
+                this.SyncHostNameDetails(item.HostName);
+            }
+        }
+
+        /// <summary>
+        /// Synchronizes the specified system's details with the configured <c>Snipe.It</c> 
+        /// system.
+        /// </summary>
+        private void SyncHostNameDetails(string hostName)
+        {
+            // Single Device.
+            SnipeItApi snipe =
+                SnipeApiExtensions.CreateClient(
+                    snipeApiUrl,
+                    snipeApiToken);
+
+            if (!String.IsNullOrWhiteSpace(hostName))
+            {
+                Log.Information($"Retrieving asset details for {hostName}");
+                try
+                {
+                    var asset = AssetDescriptor.Create(hostName);
+                    var components = ComponentDescriptor.Create(hostName);
+                    try
+                    {
+                        Log.Information($"Synchronizing asset details for {hostName}");
+                        // The current version of the SnipeSharp API has mapping issues causing the response not de serializing.
+                        snipe.SyncAssetWithCompoments(asset, components);
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Failed to sync asset details for {hostName}");
+                        Log.Error(ex.ToString());
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Failed to retrieve asset details for {hostName}");
+                    Log.Error(ex.ToString());
+                }
+            }
+        }
+
+        
+
+        #region Instance Fields
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private bool serverMode;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string snipeApiUrl;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string snipeApiToken;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        private string subnetString;
+        #endregion
+    }
+}

@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+using Serilog;
+using System;
+using System.Configuration;
+using System.IO;
 using Topshelf;
 
 namespace SnipeSniff
@@ -28,21 +32,56 @@ namespace SnipeSniff
         /// </summary>
         public static void Main()
         {
-            HostFactory.Run(configure =>
+            // Check if all configuration settings are good
+            var intervalSeconds = int.Parse(ConfigurationManager
+                               .AppSettings["SnipeSniff:ServiceInterval"]);
+
+            bool serverMode = bool.Parse(ConfigurationManager
+                              .AppSettings["SnipeSniff:ServerMode"]);
+
+            string snipeApiAddress = ConfigurationManager
+                              .AppSettings["Snipe:ApiAddress"];
+
+            string snipeApiToken = ConfigurationManager
+                              .AppSettings["Snipe:ApiToken"];
+
+            string subnetString = ConfigurationManager
+                              .AppSettings["SnipeSniff:ScannerSubnet"];
+
+
+            // Setup and start the SnipeSniffService
+            var rc = HostFactory.Run(x =>
             {
-                configure.Service<SnipeSniffService>(service =>
+                x.Service<SnipeSniffService>(s =>
                 {
-                    service.ConstructUsing(ssService => new SnipeSniffService());
-                    service.WhenStarted(ssService => ssService.StartAsync());
-                    service.WhenStopped(ssService => ssService.Stop());
+                    s.ConstructUsing(name => new SnipeSniffService(intervalSeconds, 
+                                                                   serverMode, 
+                                                                   snipeApiAddress, 
+                                                                   snipeApiToken,
+                                                                   subnetString));
+                    s.WhenStarted(tc => tc.Start());
+                    s.WhenStopped(tc => tc.Stop());
                 });
+                x.RunAsLocalSystem();
 
-                configure.RunAsLocalSystem();
+                // Configure logging
+                Log.Logger = new LoggerConfiguration()
+                    .MinimumLevel.Information()
+                    .WriteTo.Console()
+                    .WriteTo.File($"{Path.GetTempPath()}logs\\myapp.txt", rollingInterval: RollingInterval.Day)
+                    .CreateLogger();
 
-                configure.SetServiceName("SnipeSniff Service");
-                configure.SetDisplayName("SnipeSniff Service");
-                configure.SetDescription("SnipeSniff Service");
-            });          
+                //x.UseSerilog(Log.Logger);                
+
+                x.SetDescription("Periodically updates the configured Snipe-IT server with the details from this machine.");
+                x.SetDisplayName("SnipeSniff");
+                x.SetServiceName("SnipeSniff");
+            });
+
+            
+
+            var exitCode = (int)Convert.ChangeType(rc, rc.GetTypeCode());
+            Environment.ExitCode = exitCode;
         }
     }
 }
